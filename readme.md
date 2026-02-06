@@ -41,54 +41,59 @@ This dataset is an *augmented version* of the well-known Titanic dataset origina
 
 ---
 
-## Project Requirements
+## Data Cleaning
 
-1. **Deterministic and reproducible code**  
-   - Set the random seed to `42` for all operations involving randomness.
+The raw data underwent several cleaning and preprocessing steps to ensure quality and suitability for modelling:
 
-2. **Data splitting**  
-   - Split the dataset into training and test sets using 25% of the data as the test set.  
-   - Ensure the split is stratified by the `Survived` column.  
+*   **Dropped Columns**: The following columns were removed due to being arbitrary, having high missing values, or not adding predictive value:
+    *   `PassengerId`, `Name`, `Ticket`, `name_length`, `booking_reference`, `service_id`, `name_word_count`, `title`, `title_group`, `cabin_deck`.
+*   **Categorical Processing**:
+    *   `Sex`: Mapped to binary values (0/1).
+    *   `Embarked` and `Pclass`: Transformed using One-Hot Encoding.
+*   **Multicollinearity Removal**: To reduce feature redundancy, the following correlated columns were dropped:
+    *   `Fare`, `age_fare_ratio`, `SibSp`, `Parch`.
+*   **Imputation**: Missing values in the `Age` column were imputed using the median age.
+*   **Final Feature Set**: The models were trained on 13 engineered features, including `Survived` (target), `Pclass` indicators, `Sex`, `Age`, `family_size`, `is_alone`, `ticket_group_size`, `fare_per_person`, `cabin_score`, and `Embarked` indicators.
 
-3. **Model selection**  
-   - Choose *at least three* supervised machine learning methods from the following:
-     - Logistic Regression  
-     - K-Nearest Neighbors (KNN)  
-     - Linear Discriminant Analysis (LDA)  
-     - Decision Trees  
-     - Random Forests  
+## Data Modelling
 
-4. **Model training and evaluation**  
-   - Train models *only on the training set*.  
-   - Evaluate models on the test set and report performance metrics.  
-   - Report the *number of features* used in the final model.  
+We experimented with multiple models to find the best predictor for survival.
 
-## Recommended Project Procedure
+### 1. Logistic Regression
+*   **Baseline**: Established a baseline model.
+*   **Hyperparameter Tuning**: Performed `GridSearchCV` to optimize `C`, `penalty`, and `solver`.
+    *   **Best Parameters**: `{'C': 0.1, 'penalty': 'l2', 'solver': 'lbfgs'}`.
+*   **Feature Reduction**: Features were selected based on coefficient magnitude (threshold > 0.05), reducing the feature set from 13 to 12.
 
-To accomplish this project, you should perform the following steps:
+### 2. Random Forest
+*   **Baseline**: Achieved ~94% accuracy on training data with 100 estimators.
+*   **Hyperparameter Tuning**: Optimized `n_estimators`, `max_depth`, `min_samples_split`, and `min_samples_leaf`.
+    *   **Best Parameters**: `{'max_depth': None, 'min_samples_leaf': 2, 'min_samples_split': 5, 'n_estimators': 200}`.
+*   **Feature Reduction**: Validated feature importance (threshold > 0.01) and reduced features to 12, confirming `Sex`, `fare_per_person`, and `Age` as top predictors.
 
-1. **Data splitting**
-    - Split the dataset into training and test sets using a fixed seed of `42` to ensure reproducibility.
-    - Keep the test set completely separate until final evaluation.
+### 3. K-Nearest Neighbors (KNN)
+*   **Pipeline**: Implemented a pipeline with `StandardScaler` to normalize features.
+*   **Tuning**: Optimized neighbor count and distance metrics.
+    *   **Best Parameters**: `{'knn__metric': 'manhattan', 'knn__n_neighbors': 15, 'knn__weights': 'uniform'}`.
 
-2. **Data preprocessing**  
-   - For example, handle missing values, normalize or standardize numerical features, and encode categorical variables when needed.
+### 4. Transformer
+*   **Architecture**: Custom `TransformerClassifier` neural network.
+*   **Tuning**: Experimented with model depth and regularization.
+    *   **Best Parameters**: `{'d_model': 32, 'dropout': 0.3, 'lr': 0.01, 'num_layers': 1}`.
+*   **Feature Reduction**: Used Permutation Importance to select the top 5 most critical features: `Sex`, `Age`, `ticket_group_size`, `Pclass_3`, `Pclass_1`.
 
-3. **Data resampling**  
-   - Use resampling techniques (e.g., k-fold cross-validation) on the training set to ensure robust evaluation and hyperparameter tuning.  
+## Data Analysis
 
-4. **Model building and training**  
-   - Build and train the models using the selected methods.  
-   - Consider feature importance or contribution to reduce the number of features while maintaining performance.  
+*   **Feature Importance**: Across linear and tree-based models, **Sex** and **Socio-economic status** (proxied by `fare_per_person` and `Pclass`) consistently emerged as the most significant predictors of survival.
+*   **Model Performance**:
+    *   Random Forest showed strong performance but required tuning to manage overfitting.
+    *   Logistic Regression provided a robust and interpretable baseline.
+    *   The Transformer model demonstrated that deep learning architectures could also be effective, especially when focused on key features.
+    *   The tuned KNN model reported the highest accuracy on the test set.
 
-5. **Hyperparameter tuning**  
-    - Tune model hyperparameters on the training set (using resampling) to improve performance and generalization.
+## Conclusion
 
-6. **Result evaluation and visualization**  
-   - Evaluate each model’s performance using relevant metrics.  
-   - Visualize performance results in an intuitive way (e.g., accuracy curves, comparison charts).  
+This project successfully explored multiple machine learning approaches to predict survival on the Titanic. By combining domain knowledge with rigorous data preprocessing and hyperparameter tuning, we identified key predictors and evaluated different modeling strategies. The results highlight the importance of feature engineering and model selection in achieving optimal performance on classification tasks.
 
-7. **Analysis and discussion**  
-   - Analyze and compare the performance of the chosen models.  
-   - Discuss strategies used to improve performance and efficiency.  
-   - Describe any challenges encountered and how they were addressed.  
+
+
